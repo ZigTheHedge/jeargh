@@ -73,17 +73,12 @@ public class JEARGHProfilerRunnable implements Runnable{
     {
         if(!dropsMap.containsKey(blockState.getBlock()))
         {
-            /*
             List<ItemStackDrop> toReturn = new ArrayList<>();
             List<ItemStack> drops = Block.getDrops(blockState, level, pos, null);
             for(ItemStack stack: drops)
             {
                 toReturn.add(new ItemStackDrop(stack.getItem(), stack.getCount(), blockState, pos, level));
             }
-
-             */
-            List<ItemStackDrop> toReturn = new ArrayList<>();
-            toReturn.add(new ItemStackDrop(null, blockState, pos, level));
             dropsMap.put(blockState.getBlock(), toReturn);
         }
     }

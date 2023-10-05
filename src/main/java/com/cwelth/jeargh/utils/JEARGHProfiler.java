@@ -104,44 +104,12 @@ public class JEARGHProfiler implements Runnable{
     {
         if(dropsMap.containsKey(block)) {
             String toRet = "";
-            Map<Item, ItemStackDrop> localDrops = new HashMap<>();
-            BlockState blockState = null;
-            BlockPos blockPos = null;
-            ServerLevel serverLevel = null;
-            for (ItemStackDrop stack : dropsMap.get(block))
+            for(ItemStackDrop drop : dropsMap.get(block))
             {
-                blockState = stack.blockState;
-                blockPos = stack.blockPos;
-                serverLevel = stack.serverLevel;
-                if(stack.getItem() != null)
-                    localDrops.put(stack.getItem(), stack);
-            }
-
-            int max_iterations = 1000;
-            for(int i = 0; i < max_iterations; i++)
-            {
-                List<ItemStack> drops = Block.getDrops(blockState, serverLevel, blockPos, null);
-                for(ItemStack itemStack: drops)
-                {
-                    Item item = itemStack.getItem();
-                    if(!localDrops.containsKey(item))
-                    {
-                        localDrops.put(item, new ItemStackDrop(item, blockState, blockPos, serverLevel));
-                    }
-                    ItemStackDrop itemStackDrop = localDrops.get(item);
-                    itemStackDrop.addDrop(itemStack.getCount());
-                    localDrops.put(item, itemStackDrop);
-                }
-            }
-
-            for(Map.Entry<Item, ItemStackDrop> entry : localDrops.entrySet())
-            {
-                String toAdd = ForgeRegistries.ITEMS.getKey(entry.getValue().getItem()) + "," + entry.getValue().getChance();
+                String toAdd = ForgeRegistries.ITEMS.getKey(drop.getItem()) + "," + drop.getChance();
                 toRet += (toRet.isEmpty())? toAdd : ";" + toAdd;
             }
-
             return toRet;
-
         }
         return ForgeRegistries.BLOCKS.getKey(block).toString() + ",1.0";
     }
@@ -150,7 +118,6 @@ public class JEARGHProfiler implements Runnable{
         for(Map.Entry<Block, HashMap<Integer, Integer>> ore: collectedData.entrySet())
         {
             String blockName = ForgeRegistries.BLOCKS.getKey(ore.getKey()).toString();
-            JEARGH.LOGGER.info("Calculating drops for " + blockName);
             String blockDrops = buildItemDrops(ore.getKey());
             worldGen.add(new WorldGenJson(blockName, blockDrops, WorldGenJson.BuildDistrib(ore.getValue(), chunks_to_profile * CHUNK_SIZE), WorldGenJson.BuildRawDistrib(ore.getValue()), dimension));
         }
@@ -237,6 +204,7 @@ public class JEARGHProfiler implements Runnable{
                 } else {
                     if(shouldAbort)
                     {
+                        JEARGH.LOGGER.warn("Forced shutdown!");
                         executorService.shutdownNow();
                         break;
                     }
@@ -252,11 +220,11 @@ public class JEARGHProfiler implements Runnable{
     public void run() {
         if(player.level.isClientSide()) return;
         MinecraftServer server = Minecraft.getInstance().getSingleplayerServer();
+        int xPosition = player.getOnPos().getX();
+        int zPosition = player.getOnPos().getZ();
 
         if(shouldMerge)
         {
-            int xPosition = player.getOnPos().getX();
-            int zPosition = player.getOnPos().getZ();
             ServerLevel serverLevel = (ServerLevel)player.level;
             if(!loadWorldGen()) return;
             loadMapFromWorldGen(serverLevel.dimension().location().toString());
@@ -276,6 +244,10 @@ public class JEARGHProfiler implements Runnable{
             awaitTermination();
             if(shouldAbort) return;
             player.sendSystemMessage(Component.translatable("profiling.complete.dimension", serverLevel.dimension().location()));
+            executorService = Executors.newFixedThreadPool(1);
+            executorService.execute(new DropCalculatorRunnable(serverLevel));
+            executorService.shutdown();
+            awaitTermination();
             dumpForDimension(serverLevel.dimension().location().toString());
             loadToWorldGen(serverLevel.dimension().location().toString());
         } else
@@ -290,8 +262,8 @@ public class JEARGHProfiler implements Runnable{
                 ServerLevel serverLevel = server.getLevel(levelResourceKey);
                 executorService = Executors.newFixedThreadPool(max_threads);
                 player.sendSystemMessage(Component.translatable("profiling.start.dimension", serverLevel.dimension().location(), dimcount, dimtotal, chunk_radius_to_profile, chunks_to_profile));
-                for (int x = -chunk_radius_to_profile * CHUNK_SIZE; x < chunk_radius_to_profile * CHUNK_SIZE; x += CHUNK_SIZE) {
-                    for (int z = -chunk_radius_to_profile * CHUNK_SIZE; z < chunk_radius_to_profile * CHUNK_SIZE; z += CHUNK_SIZE) {
+                for (int x = -chunk_radius_to_profile * CHUNK_SIZE + xPosition; x < chunk_radius_to_profile * CHUNK_SIZE + xPosition; x += CHUNK_SIZE) {
+                    for (int z = -chunk_radius_to_profile * CHUNK_SIZE + zPosition; z < chunk_radius_to_profile * CHUNK_SIZE + zPosition; z += CHUNK_SIZE) {
                         executorService.execute(new JEARGHProfilerRunnable(x, z, serverLevel, player));
                     }
                 }
@@ -299,8 +271,11 @@ public class JEARGHProfiler implements Runnable{
                 awaitTermination();
                 if(shouldAbort) return;
                 player.sendSystemMessage(Component.translatable("profiling.complete.dimension", serverLevel.dimension().location()));
+                executorService = Executors.newFixedThreadPool(1);
+                executorService.execute(new DropCalculatorRunnable(serverLevel));
+                executorService.shutdown();
+                awaitTermination();
                 dumpForDimension(serverLevel.dimension().location().toString());
-                JEARGH.LOGGER.warn("Dump Complete.");
             }
         }
 
