@@ -69,11 +69,17 @@ public class JEARGHProfiler implements Runnable{
         {
             File file_old = new File(getPath() + "/config/world-gen-" + (ic - 1) + ".json");
             File file_new = new File(getPath() + "/config/world-gen-" + (ic) + ".json");
-            file_old.renameTo(file_new);
+            if(!file_old.renameTo(file_new))
+            {
+                player.sendSystemMessage(Component.translatable("profiling.generate.backup.failed", file_old.getName()));
+            }
         }
         File file_old = new File(getPath() + "/config/world-gen.json");
         File file_new = new File(getPath() + "/config/world-gen-1.json");
-        file_old.renameTo(file_new);
+        if(!file_old.renameTo(file_new))
+        {
+            player.sendSystemMessage(Component.translatable("profiling.generate.backup.failed", file_old.getName()));
+        }
     }
     public void generateWorldGenFile()
     {
@@ -138,6 +144,7 @@ public class JEARGHProfiler implements Runnable{
             BufferedReader br = new BufferedReader(new FileReader(file));
             worldGenExisting = new Gson().fromJson(br, new TypeToken<List<WorldGenJson>>() {}.getType());
             if(worldGenExisting == null) return false;
+            br.close();
         } catch (IOException e) {
             return false;
         }
@@ -170,6 +177,34 @@ public class JEARGHProfiler implements Runnable{
                 worldGen.add(entry);
             }
         }
+    }
+
+    public void fixIncorrectHeights(Player player, int chunk_radius_to_profile)
+    {
+        this.player = player;
+        JEARGHProfiler.chunk_radius_to_profile = chunk_radius_to_profile;
+        chunks_to_profile = chunk_radius_to_profile * chunk_radius_to_profile * 4;
+        player.sendSystemMessage(Component.translatable("profiling.fix"));
+        worldGen.clear();
+        dropsMap.clear();
+        loadWorldGen();
+        for(WorldGenJson entry: worldGenExisting)
+        {
+            if(!entry.dim.equals("minecraft:overworld"))
+            {
+                Block block = ForgeRegistries.BLOCKS.getValue(new ResourceLocation(entry.block));
+                String[] distribs = entry.distrib_raw.split(";");
+                for(String distrib : distribs)
+                {
+                    String[] gen = distrib.split(",");
+                    JEARGHProfilerRunnable.addToMap(block, Integer.parseInt(gen[0]) + 64, Integer.parseInt(gen[1]));
+                }
+                dumpForDimension(entry.dim);
+            } else
+                worldGen.add(entry);
+        }
+        player.sendSystemMessage(Component.translatable("profiling.complete"));
+        generateWorldGenFile();
     }
     public void start(Player player, int chunk_radius_to_profile, boolean shouldMerge)
     {

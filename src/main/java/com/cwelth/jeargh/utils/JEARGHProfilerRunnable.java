@@ -92,7 +92,7 @@ public class JEARGHProfilerRunnable implements Runnable{
                     BlockPos pos = new BlockPos(x, y, z);
                     BlockState foundBlock = level.getBlockState(pos);
                     if (foundBlock.is(Tags.Blocks.ORES)) {
-                        addToMap(foundBlock.getBlock(), y + Math.abs(lowestPoint), 1);
+                        addToMap(foundBlock.getBlock(), y + 64, 1);
                         addToDrops(foundBlock, pos);
                     }
                 }

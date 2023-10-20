@@ -2,6 +2,7 @@
   "profiling.abort.start": "Aborting... please wait!",
   "profiling.abort": "Profiling has been aborted!",
   "profiling.start": "Profiling has been started. Number of threads: %s",
+  "profiling.fix": "Fixing incorrect heights for non-overworld dimensions",
   "profiling.start.merge": "Profiling has been started [MERGING]. Number of threads: %s",
   "profiling.start.dimension": "Profiling dimension: %s (%s/%s), chunk radius: %s, total chunks per dimension: %s",
   "profiling.progress": "%s out of %s done, %s out of %s total (%s%%)",
@@ -9,6 +10,7 @@
   "profiling.complete": "Profiling complete. You need to restart your world for changes to appear in JER.",
   "profiling.generate.file": "world-gen.json is about to be created...",
   "profiling.generate.backup": "Old world-gen's found. Backing up...",
+  "profiling.generate.backup.failed": "§cBackup failed! File %s cannot be renamed!",
   "profiling.generate.done": "world-gen.json has been created. All done.",
   "profiling.merge.nofile": "Merge requested, but no world-gen.json has been found! Aborting."
 }

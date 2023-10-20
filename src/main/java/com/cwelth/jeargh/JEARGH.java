@@ -1,6 +1,7 @@
 package com.cwelth.jeargh;
 
 import com.cwelth.jeargh.commands.AbortProfiling;
+import com.cwelth.jeargh.commands.FixHeights;
 import com.cwelth.jeargh.commands.StartProfiling;
 import com.cwelth.jeargh.utils.JEARGHProfiler;
 import com.mojang.brigadier.CommandDispatcher;
@@ -40,6 +41,7 @@ public class JEARGH {
                     Commands.literal("jeargh")
                             .then(StartProfiling.register(dispatcher))
                             .then(AbortProfiling.register(dispatcher))
+                            .then(FixHeights.register(dispatcher))
             );
 
             dispatcher.register(Commands.literal(JEARGH.MODID).redirect(cmdsJEARGH));
